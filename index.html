@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Zoffoli Tracker</title>
+  <link rel="icon" type="image/png" href="assets/logo-zoffoli.png">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <main id="login" class="login" hidden>
+    <form id="login-form" class="login-card" autocomplete="on">
+      <img src="assets/logo-zoffoli.png" alt="Zoffoli Metalli" class="login-logo">
+      <h1>Container Tracker</h1>
+      <p class="muted">Area riservata · inserisci la password</p>
+      <input type="text" name="username" value="zoffoli" autocomplete="username" hidden>
+      <label class="field">
+        <span>Password</span>
+        <input id="password" type="password" autocomplete="current-password" required autofocus>
+      </label>
+      <label class="check">
+        <input id="remember" type="checkbox"> Ricordami su questo dispositivo
+      </label>
+      <button id="login-btn" class="btn btn-primary" type="submit">Accedi</button>
+      <p id="login-error" class="error" role="alert" hidden></p>
+    </form>
+  </main>
+
+  <!-- APP -->
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <img src="assets/logo-zoffoli.png" alt="Zoffoli Metalli" class="topbar-logo">
+        <div class="topbar-title">
+          <strong>Container Tracker</strong>
+          <span id="updated" class="muted"></span>
+        </div>
+        <div class="topbar-actions">
+          <button id="add-btn" class="btn btn-primary" type="button" hidden>+ Aggiungi BL</button>
+          <button id="export-btn" class="btn btn-ghost" type="button" title="Esporta la vista in CSV">Esporta CSV</button>
+          <button id="logout-btn" class="btn btn-ghost" type="button">Esci</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section id="kpis" class="kpis" aria-label="Riepilogo"></section>
+
+      <section class="toolbar" aria-label="Filtri">
+        <input id="search" type="search" placeholder="Cerca BL, container, cliente, porto…" class="input search">
+        <select id="f-carrier" class="input"><option value="">Tutti gli armatori</option></select>
+        <select id="f-customer" class="input"><option value="">Tutti i clienti</option></select>
+        <select id="f-status" class="input">
+          <option value="">Tutti gli stati</option>
+          <option value="OPEN">Aperti (non rientrati)</option>
+          <option value="LATE">In ritardo</option>
+          <option value="IN_TRANSIT">In viaggio</option>
+          <option value="ARRIVED_ALL">Arrivati (non rientrati)</option>
+          <option value="RETURNED">Rientrato vuoto</option>
+          <option value="NO_DATA">Nessun dato</option>
+        </select>
+        <div class="date-filter" role="group" aria-label="Filtro per data">
+          <select id="f-date-field" class="input" title="Data su cui filtrare">
+            <option value="ship_date">Data spedizione</option>
+            <option value="departure">Data partenza</option>
+            <option value="arrival_or_eta">Data arrivo / ETA</option>
+            <option value="last_return">Data rientro vuoto</option>
+          </select>
+          <label class="date-input"><span>dal</span><input id="f-date-from" type="date" class="input"></label>
+          <label class="date-input"><span>al</span><input id="f-date-to" type="date" class="input"></label>
+          <button id="f-reset" type="button" class="btn btn-ghost" title="Azzera tutti i filtri">Azzera filtri</button>
+        </div>
+        <span id="count" class="muted count"></span>
+      </section>
+
+      <section id="selection-bar" class="selection-bar" hidden>
+        <strong id="sel-count"></strong>
+        <button id="sel-archive" type="button" class="btn btn-danger">Archivia selezionati</button>
+        <button id="sel-clear" type="button" class="btn btn-ghost">Deseleziona</button>
+      </section>
+
+      <section class="table-wrap">
+        <table class="table" id="table">
+          <thead>
+            <tr>
+              <th class="col-check sel-col"><input id="sel-all" type="checkbox" title="Seleziona tutte le righe visibili" aria-label="Seleziona tutte le righe visibili"></th>
+              <th class="col-n num" title="Numero riga (in base ai filtri)">#</th>
+              <th data-sort="status">Stato</th>
+              <th data-sort="bl">BL</th>
+              <th data-sort="customer">Cliente</th>
+              <th data-sort="pod">Tratta</th>
+              <th data-sort="containers_count" class="num">Cont.</th>
+              <th data-sort="departure">Partenza</th>
+              <th data-sort="arrival_or_eta">Arrivo / ETA</th>
+              <th data-sort="returned_count">Rientro vuoto</th>
+              <th data-sort="delay_days" class="num" title="Giorni rispetto all'ETA prevista in fase d'ordine">Ritardo</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <p id="empty" class="empty muted" hidden>Nessuna spedizione corrisponde ai filtri.</p>
+      </section>
+    </main>
+
+    <!-- AGGIUNGI BL -->
+    <dialog id="add-dialog" class="dialog">
+      <form id="add-form" method="dialog" class="dialog-body">
+        <h2>Aggiungi BL</h2>
+        <p class="muted">Il BL verrà tracciato e i dati compariranno da soli in pochi minuti (di solito 5–10, se il PC di tracking è acceso).</p>
+        <label class="field">
+          <span>Numero BL *</span>
+          <input id="add-bl" required autocomplete="off" spellcheck="false" placeholder="es. MEDUWW123456 oppure MAEU271869187" class="mono">
+        </label>
+        <label class="field">
+          <span>Armatore *</span>
+          <select id="add-carrier" required>
+            <option value="">— seleziona —</option>
+            <option value="MSC">MSC</option>
+            <option value="MAERSK">Maersk</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Cliente</span>
+          <input id="add-customer" list="customers" autocomplete="off">
+          <datalist id="customers"></datalist>
+        </label>
+        <label class="field">
+          <span>Ordine / riferimento</span>
+          <input id="add-order" autocomplete="off" placeholder="es. OVP26-00400">
+        </label>
+        <label class="field">
+          <span>Note</span>
+          <input id="add-note" autocomplete="off">
+        </label>
+        <p id="add-error" class="error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-ghost" data-cancel>Annulla</button>
+          <button type="submit" id="add-submit" class="btn btn-primary">Aggiungi</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" hidden></div>
+
+    <!-- DETTAGLIO -->
+    <div id="drawer-backdrop" class="backdrop" hidden></div>
+    <aside id="drawer" class="drawer" aria-hidden="true" tabindex="-1"></aside>
+  </div>
+
+  <script src="data/shipments.enc.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
